@@ -1,0 +1,15 @@
+{
+  "name": "@streamlog/kafka-test",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "@streamlog/kafka": "workspace:*",
+    "@streamlog/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2"
+  }
+}
