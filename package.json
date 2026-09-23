@@ -1,0 +1,19 @@
+{
+  "name": "streamlog",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "bun --cwd apps/api dev",
+    "dev:processor": "bun --cwd apps/processor dev",
+    "typecheck": "bun run --filter '*' typecheck"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}
