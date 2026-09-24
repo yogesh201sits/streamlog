@@ -34,6 +34,13 @@
         "@types/node": "^26.6.2",
       },
     },
+    "apps/processor": {
+      "name": "@streamlog/processor",
+      "dependencies": {
+        "@streamlog/kafka": "workspace:*",
+        "@streamlog/shared": "workspace:*",
+      },
+    },
     "packages/kafka": {
       "name": "@streamlog/kafka",
     },
@@ -47,6 +54,8 @@
     "@streamlog/kafka": ["@streamlog/kafka@workspace:packages/kafka"],
 
     "@streamlog/kafka-test": ["@streamlog/kafka-test@workspace:apps/kafka-test"],
+
+    "@streamlog/processor": ["@streamlog/processor@workspace:apps/processor"],
 
     "@streamlog/shared": ["@streamlog/shared@workspace:packages/shared"],
 

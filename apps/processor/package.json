@@ -1,0 +1,13 @@
+{
+  "name": "@streamlog/processor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@streamlog/kafka": "workspace:*",
+    "@streamlog/shared": "workspace:*"
+  }
+}
