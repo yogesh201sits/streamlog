@@ -39,18 +39,34 @@ export class KafkaConsumer {
 
   async run(handler: MessageHandler): Promise<void> {
     await this.consumer.run({
+      autoCommit: false,
+
       eachMessage: async ({
         topic,
         partition,
         message,
       }) => {
-        await handler({
+        const consumedMessage: ConsumedMessage = {
           topic,
           partition,
           offset: message.offset,
           key: message.key?.toString() ?? null,
           value: message.value?.toString() ?? null,
-        });
+        };
+
+        await handler(consumedMessage);
+
+        const nextOffset = (
+          BigInt(message.offset) + 1n
+        ).toString();
+
+        await this.consumer.commitOffsets([
+          {
+            topic,
+            partition,
+            offset: nextOffset,
+          },
+        ]);
       },
     });
   }
