@@ -8,8 +8,20 @@
         "kafkajs": "^2.2.4",
       },
       "devDependencies": {
+        "@types/bun": "^1.4.2",
         "@types/node": "^26.6.2",
         "typescript": "^7.0.2",
+      },
+    },
+    "apps/api": {
+      "name": "@streamlog/api",
+      "dependencies": {
+        "@streamlog/kafka": "workspace:*",
+        "@streamlog/shared": "workspace:*",
+        "hono": "^4.0.0",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.4.2",
       },
     },
     "apps/kafka-test": {
@@ -22,6 +34,13 @@
         "@types/node": "^26.6.2",
       },
     },
+    "apps/processor": {
+      "name": "@streamlog/processor",
+      "dependencies": {
+        "@streamlog/kafka": "workspace:*",
+        "@streamlog/shared": "workspace:*",
+      },
+    },
     "packages/kafka": {
       "name": "@streamlog/kafka",
     },
@@ -30,11 +49,17 @@
     },
   },
   "packages": {
+    "@streamlog/api": ["@streamlog/api@workspace:apps/api"],
+
     "@streamlog/kafka": ["@streamlog/kafka@workspace:packages/kafka"],
 
     "@streamlog/kafka-test": ["@streamlog/kafka-test@workspace:apps/kafka-test"],
 
+    "@streamlog/processor": ["@streamlog/processor@workspace:apps/processor"],
+
     "@streamlog/shared": ["@streamlog/shared@workspace:packages/shared"],
+
+    "@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
 
     "@types/node": ["@types/node@26.6.2", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-X1P21scMv4zGKLYqjdGjaKa7COa0RKVYYZZN/NfvLQ1JegxFhdhpZG/Lyn8AXx6CDUavKAd11v6BvfpkDByK8g=="],
 
@@ -77,6 +102,10 @@
     "@typescript/typescript-win32-arm64": ["@typescript/typescript-win32-arm64@7.0.2", "", { "os": "win32", "cpu": "arm64" }, "sha512-Gyl1Vy6OsWesLzmq+EP0Fb7b4Nid5232AvcA2SFcdYreldpNtYFFofPjnt62y9hQy7VTaZp65ICJjuAQRaVcIQ=="],
 
     "@typescript/typescript-win32-x64": ["@typescript/typescript-win32-x64@7.0.2", "", { "os": "win32", "cpu": "x64" }, "sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g=="],
+
+    "bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
+
+    "hono": ["hono@4.13.9", "", {}, "sha512-7dMkQmZoC4E6F7AtaQSPhlWAdnBti+j7rreMZl8QB4jFiEhP9TWbGWUMi8WYzBCgmgulxuvLQupKqo+Co6Omyg=="],
 
     "kafkajs": ["kafkajs@2.2.4", "", {}, "sha512-j/YeapB1vfPT2iOIUn/vxdyKEuhuY2PxMBvf5JWux6iSaukAccrMtXEY/Lb7OvavDhOWME589bpLrEdnVHjfjA=="],
 
