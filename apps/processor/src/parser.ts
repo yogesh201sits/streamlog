@@ -3,6 +3,8 @@ import {
   type LogEvent,
 } from "@streamlog/shared";
 
+import { PermanentProcessingError } from "./errors";
+
 export class LogParser {
   parse(value: string): LogEvent {
     let parsed: unknown;
@@ -10,13 +12,15 @@ export class LogParser {
     try {
       parsed = JSON.parse(value);
     } catch {
-      throw new Error("Invalid JSON");
+      throw new PermanentProcessingError(
+        "Invalid JSON",
+      );
     }
 
     const result = LogEventSchema.safeParse(parsed);
 
     if (!result.success) {
-      throw new Error(
+      throw new PermanentProcessingError(
         `Invalid LogEvent: ${result.error.message}`,
       );
     }
