@@ -74,7 +74,17 @@ const processMessage = async (
   >[0],
 ): Promise<void> => {
   try {
-    await processor.process(message);
+    await withRetry(
+      () => processor.process(message),
+      {
+        maxAttempts:
+          config.retry.maxAttempts,
+        baseDelayMs:
+          config.retry.baseDelayMs,
+        maxDelayMs:
+          config.retry.maxDelayMs,
+      },
+    );
 
     console.log({
       event: "log_processed",
@@ -100,40 +110,19 @@ const processMessage = async (
       return;
     }
 
-    try {
-      await withRetry(
-        () => processor.process(message),
-        {
-          maxAttempts:
-            config.retry.maxAttempts,
-          baseDelayMs:
-            config.retry.baseDelayMs,
-          maxDelayMs:
-            config.retry.maxDelayMs,
-        },
-      );
+    console.error({
+      event: "log_retry_exhausted",
+      topic: message.topic,
+      partition: message.partition,
+      offset: message.offset,
+    });
 
-      console.log({
-        event: "log_processed_after_retry",
-        topic: message.topic,
-        partition: message.partition,
-        offset: message.offset,
-      });
-    } catch (retryError) {
-      console.error({
-        event: "log_retry_exhausted",
-        topic: message.topic,
-        partition: message.partition,
-        offset: message.offset,
-      });
-
-      await dlqPublisher.publish(
-        message,
-        retryError instanceof RetryExhaustedError
-          ? retryError.cause
-          : retryError,
-      );
-    }
+    await dlqPublisher.publish(
+      message,
+      error instanceof RetryExhaustedError
+        ? error.cause
+        : error,
+    );
   }
 };
 

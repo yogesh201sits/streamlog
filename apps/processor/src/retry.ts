@@ -1,4 +1,7 @@
-import { RetryExhaustedError } from "./errors";
+import {
+  PermanentProcessingError,
+  RetryExhaustedError,
+} from "./errors";
 
 export type RetryOptions = {
   maxAttempts: number;
@@ -28,6 +31,12 @@ export async function withRetry<T>(
     try {
       return await operation();
     } catch (error) {
+      if (
+        error instanceof PermanentProcessingError
+      ) {
+        throw error;
+      }
+
       lastError = error;
 
       if (attempt === options.maxAttempts) {
@@ -47,7 +56,14 @@ export async function withRetry<T>(
         Math.random() * cappedDelay * 0.2,
       );
 
-      await sleep(cappedDelay + jitter);
+      const delay = cappedDelay + jitter;
+
+      console.log(
+        `[Retry] attempt=${attempt} failed, ` +
+          `retrying in ${delay}ms`,
+      );
+
+      await sleep(delay);
     }
   }
 
