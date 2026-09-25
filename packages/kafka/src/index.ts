@@ -16,5 +16,6 @@ export type {
 export {
   TOPICS,
   LOGS_RAW_PARTITIONS,
+  LOGS_DLQ_PARTITIONS,
   CONSUMER_GROUPS,
 } from "./topics";

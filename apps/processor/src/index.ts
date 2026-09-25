@@ -1,87 +1,141 @@
 import {
+  KafkaAdmin,
   KafkaClient,
   KafkaConsumer,
-  CONSUMER_GROUPS,
+  KafkaProducer,
+  LOGS_DLQ_PARTITIONS,
   TOPICS,
 } from "@streamlog/kafka";
 
-import type { LogEvent } from "@streamlog/shared";
+import { config } from "./config";
+import { DlqPublisher } from "./dlq";
+import {
+  PermanentProcessingError,
+  RetryExhaustedError,
+} from "./errors";
+import { LogParser } from "./parser";
+import { LogProcessor } from "./processor";
+import { withRetry } from "./retry";
+import { ConsoleSink } from "./sink/console";
 
 const kafkaClient = new KafkaClient({
-  clientId: "streamlog-processor",
+  clientId: config.kafka.clientId,
+  brokers: config.kafka.brokers.split(","),
 });
+
+const admin = new KafkaAdmin(kafkaClient);
+
+await admin.connect();
+
+const topics = await admin.listTopics();
+
+if (!topics.includes(TOPICS.LOGS_DLQ)) {
+  await admin.createTopic(
+    TOPICS.LOGS_DLQ,
+    LOGS_DLQ_PARTITIONS,
+  );
+
+  console.log(
+    `Created topic ${TOPICS.LOGS_DLQ}`,
+  );
+}
+
+await admin.disconnect();
+
+const producer = new KafkaProducer(kafkaClient);
+
+await producer.connect();
 
 const consumer = new KafkaConsumer(
   kafkaClient,
-  CONSUMER_GROUPS.LOG_PROCESSOR,
+  config.kafka.groupId,
 );
 
-function parseLogEvent(value: string): LogEvent {
-  const parsed: unknown = JSON.parse(value);
+const processor = new LogProcessor(
+  new LogParser(),
+  new ConsoleSink(),
+);
 
-  if (!parsed || typeof parsed !== "object") {
-    throw new Error("Invalid log event");
-  }
-
-  const event = parsed as Partial<LogEvent>;
-
-  if (
-    typeof event.eventId !== "string" ||
-    typeof event.timestamp !== "string" ||
-    typeof event.service !== "string" ||
-    typeof event.level !== "string" ||
-    typeof event.message !== "string"
-  ) {
-    throw new Error("Invalid LogEvent structure");
-  }
-
-  return event as LogEvent;
-}
+const dlqPublisher = new DlqPublisher(producer);
 
 await consumer.connect();
 
 console.log("Kafka consumer connected");
 
-await consumer.subscribe(TOPICS.LOGS_RAW);
+await consumer.subscribe(config.kafka.topic);
 
-console.log(`Subscribed to ${TOPICS.LOGS_RAW}`);
+console.log(
+  `Subscribed to ${config.kafka.topic}`,
+);
 
-await consumer.run(async (message) => {
-  if (!message.value) {
-    console.warn("Received message without value");
-    return;
-  }
-
+const processMessage = async (
+  message: Parameters<
+    typeof processor.process
+  >[0],
+): Promise<void> => {
   try {
-    const event = parseLogEvent(message.value);
-
-    console.log("Processing log:");
+    await withRetry(
+      () => processor.process(message),
+      {
+        maxAttempts:
+          config.retry.maxAttempts,
+        baseDelayMs:
+          config.retry.baseDelayMs,
+        maxDelayMs:
+          config.retry.maxDelayMs,
+      },
+    );
 
     console.log({
-      eventId: event.eventId,
-      service: event.service,
-      level: event.level,
-      message: event.message,
-      timestamp: event.timestamp,
+      event: "log_processed",
+      topic: message.topic,
       partition: message.partition,
       offset: message.offset,
     });
   } catch (error) {
-    console.error("Failed to process Kafka message", {
-      error,
+    if (error instanceof PermanentProcessingError) {
+      console.error({
+        event: "log_permanent_failure",
+        topic: message.topic,
+        partition: message.partition,
+        offset: message.offset,
+        error: error.message,
+      });
+
+      await dlqPublisher.publish(
+        message,
+        error,
+      );
+
+      return;
+    }
+
+    console.error({
+      event: "log_retry_exhausted",
+      topic: message.topic,
       partition: message.partition,
       offset: message.offset,
     });
+
+    await dlqPublisher.publish(
+      message,
+      error instanceof RetryExhaustedError
+        ? error.cause
+        : error,
+    );
   }
-});
+};
 
 const shutdown = async () => {
   console.log("Shutting down processor...");
 
   await consumer.disconnect();
+  await producer.disconnect();
 
   process.exit(0);
 };
 
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
+
+await consumer.run(processMessage);
