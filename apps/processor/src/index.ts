@@ -17,6 +17,9 @@ import { LogParser } from "./parser";
 import { LogProcessor } from "./processor";
 import { withRetry } from "./retry";
 import { ConsoleSink } from "./sink/console";
+import {
+  MemoryIdempotencyStore,
+} from "./idempotency";
 
 const kafkaClient = new KafkaClient({
   clientId: config.kafka.clientId,
@@ -51,9 +54,13 @@ const consumer = new KafkaConsumer(
   config.kafka.groupId,
 );
 
+const idempotencyStore =
+  new MemoryIdempotencyStore();
+
 const processor = new LogProcessor(
   new LogParser(),
   new ConsoleSink(),
+  idempotencyStore,
 );
 
 const dlqPublisher = new DlqPublisher(producer);
